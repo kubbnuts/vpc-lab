@@ -14,8 +14,9 @@ provider "aws" {
 
 # Create a VPC
 resource "aws_vpc" "DemoVPC-Test" {
-  cidr_block = "10.0.0.0/16"
-  tags = {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  tags                 = {
     Name = "Demo-VPC-Test"
   }
 }
@@ -80,13 +81,21 @@ resource "aws_security_group" "BastionHostSG" {
   }
 }
 
-resource "aws_vpc_security_group_egress_rule" "allow_443_bastion" {
+resource "aws_vpc_security_group_ingress_rule" "allow_80_in_bastion" {
+  security_group_id = aws_security_group.BastionHostSG.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 80
+  to_port           = 80
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_443_in_bastion" {
   security_group_id = aws_security_group.BastionHostSG.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "tcp"
   from_port         = 443
   to_port           = 443
-} 
+}
 
 resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
   security_group_id = aws_security_group.BastionHostSG.id
@@ -95,6 +104,30 @@ resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
   from_port         = 22
   to_port           = 22
 }
+
+resource "aws_vpc_security_group_ingress_rule" "allow_3306_bastion" {
+  security_group_id = aws_security_group.BastionHostSG.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 3306
+  to_port           = 3306
+}
+
+resource "aws_vpc_security_group_egress_rule" "allow_80_bastion" {
+  security_group_id = aws_security_group.BastionHostSG.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 80
+  to_port           = 80
+} 
+
+resource "aws_vpc_security_group_egress_rule" "allow_443_bastion" {
+  security_group_id = aws_security_group.BastionHostSG.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
+} 
 
 resource "aws_vpc_security_group_egress_rule" "allow_outbound_ssh" {
   security_group_id = aws_security_group.BastionHostSG.id
@@ -133,21 +166,21 @@ resource "aws_route_table_association" "public-b" {
   route_table_id = aws_route_table.public-route-table.id
 }
 
-resource "aws_route_table" "private-route-table" {
-  vpc_id = aws_vpc.DemoVPC-Test.id
+#resource "aws_route_table" "private-route-table" {
+#  vpc_id = aws_vpc.DemoVPC-Test.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_nat_gateway.DemoNATGW.id #nat
+#  route 
+#    cidr_block = "0.0.0.0/0"
+#    gateway_id = aws_nat_gateway.DemoNATGW.id #nat
 
-#    depends_on = [ aws_nat_gateway.DemoNATGW ]
-  }
+##    depends_on = [ aws_nat_gateway.DemoNATGW ]
+#  }
 
 
-  tags = {
-    Name = "PrivateRouteTable"
-  }
-}
+#  tags = {
+#    Name = "PrivateRouteTable"
+#  }
+#}
 
 resource "aws_route_table_association" "private-a" {
   subnet_id      = aws_subnet.private-subnet-a.id
